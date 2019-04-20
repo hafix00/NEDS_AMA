@@ -1,0 +1,359 @@
+---
+title: "Final Graph"
+author: "Maher Kazimi"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    code_folding: hide
+    highlight: kate
+    number_sections: yes
+    theme: sandstone
+    toc: yes
+    toc_float: yes
+---
+
+
+```{r setup}
+knitr::opts_chunk$set(comment = NA,
+                      warning = FALSE,
+                      message = FALSE)
+```
+
+```{r load_packages}
+
+library(ggplot2) 
+library(ggalt)   
+library(dplyr)   
+
+
+library(janitor)
+library(tidyverse)
+
+```
+
+#Prelim work
+
+## Create data frame for the continuos variable  adjusted total charge (Mean+/-SD)
+
+```{r}
+d <- tibble::tribble(
+    ~vars, ~y2006_pct, ~y2014_pct,
+  "All", "1479592.84", "1728813.65",
+  "Female", 54.5, 51.4,
+  'Age Group (Y)', NA, NA,
+  '` 18-29', 22.4, 28.8,
+  '` 30-39', 19.2, 18.1,
+  '` 40-49', 17.5, 19,
+  '` 50-59', 17, 16.3,
+  '` 60-69', 10.5, 8.9,
+  '` 70+', 13.5, 9,
+  'Elixhauser Comorbidity Score', NA, NA, 
+  '` 0', 91.9, 81.5,
+  '` 1-2', 7.8, 17,
+  '` 3+', 0.4, 1.5,
+  'Income Quartile (Median by Zip Code)', NA, NA,
+  '` 1 - 40K', 37.4, 43.5,
+  '` 40K - 51K', 28.3, 28.2,
+  '` 51K - 66K', 21.2, 17.6,
+  '` 66K+', 13.1, 10.8,
+  'Insurance', NA, NA,
+  '` Medicaid', 24.3, 33.5,
+  '` Medicare', 14.6, 20.2,
+  '` Private Insurance', 23.8, 18.1,
+  '` Uninsured', 36, 27.2,
+  '` No Charge', 1.3, 1.1,
+  'Trauma Level', NA, NA, 
+  '` Level 1', 11.2, 2.9, 
+  '` Level 1 - 2', 15.1, 35.3, 
+  '` Level 3', 6.3, 7.1, 
+  '` Non trauma', 67.4, 54.7,
+  'Hospital Region', NA, NA,
+  '` Midwest', 13.2, 19.7, 
+  '` Northeast', 16, 19.4,
+  '` South', 47.6, 56.7, 
+  '` West', 23.2, 4.3,
+  "Year Adjusted Total Charge [Mean]", '1508.33', '3327.63'
+   )
+  
+
+#d$vars = as.factor(d$vars)
+c <- d
+
+c
+
+
+```
+
+## Read the data I created in a table before
+
+```{r}
+s <- read_csv("Table1_ama.csv") %>% select(vars, y2006_pct, y2014_pct)  
+s <- c
+
+s <- rbind(s, c)
+s$vars
+
+s$y2006_pct = as.numeric(s$y2006_pct)
+s$y2014_pct = as.numeric(s$y2014_pct)
+
+s$pct_dif <- (s$y2014_pct - s$y2006_pct)
+s
+
+
+# deleting the variables for admission month -- unnecessary
+
+s1 <- s %>%
+  filter(vars != '1' & vars != '2' &vars != '3' &vars != '4' &vars != '5' &vars != '6' &vars != '7' &vars != '8' &vars != '9' &vars != '10' &vars != '11' &vars != '12' & vars != 'year = 2014 [%]' & vars != "age [mean [SD]]" & vars != 'amonth [%]' & vars != 'discharge_month [%]' & vars != 'nsurance [%]' & vars != 'totchg_ed [mean [SD]]' & vars != 'region [%]' & vars != 'n' & vars != 'adj_totchg_14 [mean [SD]]' & vars != 'adj_totchg_06 [mean [SD]]')
+
+s1
+
+
+
+```
+
+
+
+```{r}
+s1$vars
+```
+
+## Cleaning and managing the data into one dataset
+
+```{r}
+#Removing the variables for discharge quarter - Also unnecessary
+df <- s1 %>%
+  filter(vars != "disch_Apr-Jun" & vars != "disch_Jan-Mar" & vars != "disch_ Jul-Sep" & vars != "disch_ Oct-Dec" & vars != "Year Adjusted Total Charge [Mean]" & vars != "hosp_cat = urban [%]" & vars != 'All')
+
+df <- c %>% 
+  filter( vars != "All" & vars != 'Year Adjusted Total Charge [Mean]')
+
+df$y2006_pct = as.numeric(df$y2006_pct)
+df$y2014_pct = as.numeric(df$y2014_pct)
+
+df$y2006_pct = df$y2006_pct/100
+df$y2014_pct = df$y2014_pct/100
+df$pct_dif = df$y2014_pct - df$y2006_pct
+
+
+#df2 <- c %>% 
+ # filter( vars == "All")
+
+#Creating a dataframe for the one and only numeric variable "total charge adjusted"
+#df2$y2006_pct = df2$y2006_pct/10000
+#df2$y2014_pct = df2$y2014_pct/10000
+#df2$pct_dif = df2$y2014_pct - df2$y2006_pct
+
+df2 <- tibble::tribble(
+    ~vars, ~y2006_pct, ~y2014_pct, ~pct_dif,
+      "Year Adjusted Total Charge [Mean]", '1508.33', '3327.63', NA)
+
+df3 <- tibble::tribble(
+    ~vars, ~y2006_pct, ~y2014_pct, ~pct_dif,
+      "All", "1479592.84", "1728813.65", NA)
+
+
+
+#Ceating dataframe for the total number of AMA patietns 
+#df3 <- c %>%
+#  filter(vars == 'Year Adjusted Total Charge [Mean]')
+#df3$y2006_pct = df3$y2006_pct/10000000
+#df3$y2014_pct = df3$y2014_pct/10000000
+#df3$pct_dif = df3$y2014_pct - df3$y2006_pct
+df3
+
+
+
+df <- rbind(df3, df, df2)
+df
+
+
+
+#  filter(vars == c('female = 1 [%]', 'age_18-29', 'age_30-39', 'age_40-49', 'age_50-59', 'age_60-69', 'age_70+',  #'Elix_score_0', 'Elix_score_1-2', 'Elix_score_3+','inc_1-40K', 'inc_40K-51K', 'inc_51K-66K', 'inc_66K+',  'Medicaid', #'Medicare', 'Private_insurance', 'un-insured', 'no-charge', 'hosp_cat = urban [%]', 'level1', 'level1-2', 'level3', #'non_trauma', 'midwest', 'northeast', 'south', 'west'))
+
+```
+
+
+# Creating the data
+
+```{r}
+d <- tibble::tribble(
+    ~vars, ~y2006_pct, ~y2014_pct,
+  "All", "1479592.84", "1728813.65",
+  "Female", 54.5, 51.4,
+  'Age Group (Y)', NA, NA,
+  '` 18-29', 22.4, 28.8,
+  '` 30-39', 19.2, 18.1,
+  '` 40-49', 17.5, 19,
+  '` 50-59', 17, 16.3,
+  '` 60-69', 10.5, 8.9,
+  '` 70+', 13.5, 9,
+  'Elixhauser Comorbidity Score', NA, NA, 
+  '` 0', 91.9, 81.5,
+  '` 1-2', 7.8, 17,
+  '` 3+', 0.4, 1.5,
+  'Income Quartile (Median by Zip Code)', NA, NA,
+  '` 1 - 40K', 37.4, 43.5,
+  '` 40K - 51K', 28.3, 28.2,
+  '` 51K - 66K', 21.2, 17.6,
+  '` 66K+', 13.1, 10.8,
+  'Insurance', NA, NA,
+  '` Medicaid', 24.3, 33.5,
+  '` Medicare', 14.6, 20.2,
+  '` Private Insurance', 23.8, 18.1,
+  '` Uninsured', 36, 27.2,
+  '` No Charge', 1.3, 1.1,
+  'Trauma Level', NA, NA, 
+  '` Level 1', 11.2, 2.9, 
+  '` Level 1 - 2', 15.1, 35.3, 
+  '` Level 3', 6.3, 7.1, 
+  '` Non trauma', 67.4, 54.7,
+  'Hospital Region', NA, NA,
+  '` Midwest', 13.2, 19.7, 
+  '` Northeast', 16, 19.4,
+  '` South', 47.6, 56.7, 
+  '` West', 23.2, 4.3,
+  "Year Adjusted Total Charge [Mean]", '1508.33', '3327.63'
+   )
+  
+
+#d$vars = as.factor(d$vars)
+c <- d
+
+c
+
+df <- c %>% 
+  filter( vars != "All" & vars != 'Year Adjusted Total Charge [Mean]')
+
+df$y2006_pct = as.numeric(df$y2006_pct)
+df$y2014_pct = as.numeric(df$y2014_pct)
+
+df$y2006_pct = df$y2006_pct/100
+df$y2014_pct = df$y2014_pct/100
+df$pct_dif = df$y2014_pct - df$y2006_pct
+
+df2 <- tibble::tribble(
+    ~vars, ~y2006_pct, ~y2014_pct, ~pct_dif,
+      "Year Adjusted Total Charge [Mean]", '0.150833', '0.332763', NA)
+
+df3 <- tibble::tribble(
+    ~vars, ~y2006_pct, ~y2014_pct, ~pct_dif,
+      "All", "0.147959284", "0.172881365", NA)
+
+
+
+
+df4 <- rbind(df3, df, df2)
+df4$y2006_pct = as.numeric(df4$y2006_pct)
+df4$y2014_pct = as.numeric(df4$y2014_pct)
+
+df4
+
+
+```
+
+
+## Calculating the difference between the adjusted total charges of 2014 vs 2006
+
+```{r}
+3327.630-1508.330
+```
+
+This is the total adjusted to 2018 inflation
+
+# Protraying
+
+```{r}
+df4$diff = round((df4$pct_dif)*100, 3)
+# we want to keep the order in the plot, so we use a factor for country
+#df <- arrange(df, desc(diff))  -> no need as Joshua said we need them categorized... More work, looking worst, but we learn to nudge...
+df4$vars <- factor(df4$vars, levels=rev(df4$vars))
+
+# we only want the first line values with "%" symbols (to avoid chart junk)
+# quick hack; there is a more efficient way to do this
+percent_first <- function(x) {
+  x[1:35] <- sprintf("%d%%", round(x*100))
+  #x[3:length(x)] <- sub("%$", "", x[3:length(x)]) <- You can do this to get rid of the "%" signs for the rest of the labels (other than the first one)
+  x
+}
+
+
+#Create a new variable for the color of the lines (segments) where it is different if the values went up, or went down
+df4$class <- ifelse((df4$y2014_pct - df4$y2006_pct) < 0, "firebrick", "darkslategray")
+
+gg <- ggplot()
+# doing this vs y axis major grid line
+gg <- gg + geom_segment(data=df4, aes(y=vars, yend=vars, x=0, xend=1), color="#b2b2b2", size=0.1)
+# dum…dum…dum!bell
+gg <- gg + geom_dumbbell(data=df4, aes(y=vars, x=y2014_pct, xend=y2006_pct),
+                         size=0.75, color=df4$class, size_x=1, size_xend=1,
+                         colour_x="#9fb059", colour_xend = "#edae52")
+
+
+# text below points
+gg <- gg + geom_text(data=filter(df4, vars=="All"),
+                     aes(x=y2014_pct, y=vars, label="Yr 2014"),
+                     nudge_x = 0.05, nudge_y = 0.5,color="#9fb059", size=4, vjust=-0.55, fontface="bold", family="Calibri")
+gg <- gg + geom_text(data=filter(df4, vars=="All"),
+                     aes(x=y2006_pct, y=vars, label="Yr 2006"),
+                     nudge_x = -0.05, nudge_y = 0.5, color="#edae52", size=4, vjust=-0.55, fontface="bold", family="Calibri")
+
+
+# text above points (the != are used to observations that are not percentages and to those that I want to use ggrepel on - because of their approximation to each other or to the edge of the graph)
+gg <- gg + geom_text(data=subset(df4, class == "firebrick"), aes(x=y2006_pct, y=vars, label = ifelse(vars != 'All' & vars != 'Year Adjusted Total Charge [Mean]', percent_first(y2006_pct),  "")),  color="#edae52", size=2, hjust=-0.25, fontface="bold", family="Calibri", nudge_x = 0, nudge_y = 0)
+gg <- gg + geom_text(data=subset(df4, class == "darkslategray"), aes(x=y2006_pct, y=vars, label = ifelse(vars != 'All' & vars != 'Year Adjusted Total Charge [Mean]', percent_first(y2006_pct),  "")),  color="#edae52", size=2, hjust=1.25, fontface="bold", family="Calibri", nudge_x = 0, nudge_y = 0)
+
+gg <- gg + geom_text(data=subset(df4, class == "firebrick"), aes(x=y2014_pct, y=vars, label = ifelse(vars != 'All' & vars != 'Year Adjusted Total Charge [Mean]', percent_first(y2014_pct),  "")),  color="#9fb059", size=2, hjust=1.25, family="Calibri", nudge_x = 0, nudge_y = 0)
+gg <- gg + geom_text(data=subset(df4, class == "darkslategray"), aes(x=y2014_pct, y=vars, label = ifelse(vars != 'All' & vars != 'Year Adjusted Total Charge [Mean]', percent_first(y2014_pct),  "")),  color="#9fb059", size=2, hjust=-0.25, family="Calibri", nudge_x = 0, nudge_y = 0)
+
+
+#For the continuos varibales we will use these labels with black font
+gg <- gg + geom_text(data=filter(df4, vars == 'All'), aes(x=y2006_pct, y=vars, label = "1,479,593"), color="black", size=2, hjust=1.25, family="Calibri", nudge_x = 0, nudge_y = 0)
+
+gg <- gg + geom_text(data=filter(df4, vars == 'All'), aes(x=y2014_pct, y=vars, label = "1,728,814"), color="black", size=2, hjust=-0.25, family="Calibri", nudge_x = 0, nudge_y = 0)
+
+gg <- gg + geom_text(data=filter(df4, vars == 'Year Adjusted Total Charge [Mean]'), aes(x=y2006_pct, y=vars, label = "$1,508.33"), color="black", size=2, hjust=1.25, family="Calibri", nudge_x = 0, nudge_y = 0)
+
+gg <- gg + geom_text(data=filter(df4, vars == 'Year Adjusted Total Charge [Mean]'), aes(x=y2014_pct, y=vars, label = "$3,327.63"), color="black", size=2, hjust=-0.25, family="Calibri", nudge_x = 0, nudge_y = 0)
+
+
+# difference column
+gg <- gg + geom_rect(data=df4, aes(xmin=1.05, xmax=1.175, ymin=-Inf, ymax=Inf), fill="#efefe3")
+gg <- gg + geom_text(data=df4, aes(label=diff, y=vars, x=1.1125), fontface="bold", size=3, family="Calibri")
+gg <- gg + geom_text(data=filter(df4, vars=="All"), aes(x=1.1125, y=vars, label="DIFF"),
+                     color="#7a7d7e", size=3.1, vjust=-1.5, fontface="bold", family="Calibri")
+
+#One diff for the whole count
+gg <- gg + geom_text(data=filter(df4, vars=="All"), aes(x=1.1125, y=vars, label="249,221"),
+                    size=3, fontface="bold", family="Calibri")
+
+#And one for the total charge
+gg <- gg + geom_text(data=filter(df4, vars=="Year Adjusted Total Charge [Mean]"), aes(x=1.1125, y=vars, label="$1,819.30"),
+                    size=3, fontface="bold", family="Calibri")
+
+
+
+#adjusting the scale x
+gg <- gg + scale_x_continuous(expand=c(0,0), limits=c(0, 1.175))
+gg <- gg + scale_y_discrete(expand=c(0.075,0))
+gg <- gg + labs(x=NULL, y=NULL, title="The difference 2006 vs 2014",
+               subtitle="Patients' & hospitals' characteristic differences between 2006 and 2014",
+               caption="Source: HCUP - NEDS data base")
+gg <- gg + theme_bw(base_family="Calibri")
+gg <- gg + theme(panel.grid.major=element_blank())
+gg <- gg + theme(panel.grid.minor=element_blank())
+gg <- gg + theme(panel.border=element_blank())
+gg <- gg + theme(axis.ticks=element_blank())
+gg <- gg + theme(axis.text.x=element_blank()) + xlab("")
+gg <- gg + theme(axis.text.y=element_blank()) + ylab("")
+gg <- gg + theme(axis.text.y=element_text(size=rel(1), hjust = 1))
+gg <- gg + theme(plot.title=element_text(face="bold"))
+gg <- gg + theme(plot.subtitle=element_text(face="italic", size=9, margin=margin(b=12)))
+gg <- gg + theme(plot.caption=element_text(size=7, margin=margin(t=12), color="#7a7d7e"))
+
+
+gg
+```
+
+
+
+
